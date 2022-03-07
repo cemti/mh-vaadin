@@ -7,5 +7,12 @@
   </parent>
   <artifactId>core</artifactId>
   <name>Core</name>
-  <description>Functionalitati strict necesare a bd&gt;</description>
+  <description>Functionalitati strict necesare a BD.</description>
+  <dependencies>
+  	<dependency>
+  		<groupId>mysql</groupId>
+  		<artifactId>mysql-connector-java</artifactId>
+  		<version>8.0.28</version>
+  	</dependency>
+  </dependencies>
 </project>
