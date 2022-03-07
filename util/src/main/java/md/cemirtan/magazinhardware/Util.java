@@ -9,7 +9,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.util.function.Consumer;
-import java.util.stream.IntStream;
+import java.util.function.Function;
 
 public final class Util
 {
@@ -34,16 +34,15 @@ public final class Util
 			}
 			catch (Exception e)
 			{
-				System.out.println(e.getMessage());
+				System.err.println(e.getMessage());
 				t.rollback();
 			}
 		}
 	}
-	
-	static void read(Session s, String q)
+
+	static Firma getFirma(Session s, String f)
 	{
-		s.flush();
-		s.createNativeQuery(q, Procesor.class).getResultList().forEach(System.out::println);
+		return s.find(Firma.class, f);
 	}
 
 	public static void main(String[] args)
@@ -57,12 +56,12 @@ public final class Util
 			
 			System.out.print("Password: ");
 			p.setProperty("hibernate.connection.password", stdin.nextLine());
-			
+
 			sessionFactory = new Configuration().configure().setProperties(p).buildSessionFactory();
 		}
 		catch (HibernateException e)
 		{
-			System.out.println("Eroare la conectare BD.");
+			System.err.println("Eroare la conectare BD.");
 			return;
 		}
 
@@ -71,34 +70,77 @@ public final class Util
 			s ->
 			{
 				System.out.println("Tranzactia I:");
-
+				Function<String, Firma> firma = f -> getFirma(s, f);
+				
+				var amd = firma.apply("AMD");
+				var amdSet = amd.getProcesorSet();
+				
 				List.of(
-					new Procesor(9561, "Nvidia", "rTx TiTaN", 1.5, 7500),
-					new Procesor(5873, "AMD", "Radeon R5", 0.5, 750),
-					new Procesor(7531, "AMD", "Threadripper", 3.2, 7000)
-				).forEach(s::persist);
-
-				read(s, "SELECT * FROM Procesor");
+					new Object[] { new Procesor(5873, amd, "Radeon R5", 0.5, 1750), 1, GPU.class },
+					new Object[] { new Procesor(7531, amd, "Threadripper", 3.2, 7000), 16, CPU.class },
+					new Object[] { new Procesor(9354, amd, "Turion 64", 1.2, 500), 2, CPU.class }
+				).forEach(x ->
+				{
+					amdSet.add((Procesor)x[0]);
+					s.merge(amd);
+					
+					try
+					{
+						var pu = ((Class<?>)x[2]).getConstructor(Procesor.class, int.class).newInstance(x[0], x[1]);
+						s.persist(pu);
+						System.out.println(pu);
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+						System.exit(-1);
+					}
+				});
+				
+				var c = new Calculator(
+					69782,
+					s.find(CPU.class, 9354),
+					s.find(GPU.class, 5211),
+					new RAM(1087, firma.apply("Kingston"), 16, 18, 4),
+					null,
+					new Disk(1527, firma.apply("Toshiba"), null, 128)
+				);
+				
+				s.persist(c);
+				System.out.println(c);
 			},
-		// Update
 			s ->
 			{
 				System.out.println("Tranzactia II:");
+				var cls = Calculator.class;
+				var c = s.find(Calculator.class, 69782);
+				
+				try
+				{
+					cls.getMethod("setRamB", RAM.class)
+						.invoke(c, cls.getMethod("getRamA").invoke(c));
+					
+					cls.getMethod("setDisk", Disk.class)
+						.invoke(c, 
+							Disk.class.getConstructor(int.class, Firma.class, Integer.class, int.class)
+							.newInstance(1527, s.find(Disk.class, 1527).getFirma(), 5200, 1000));
+					
+					cls.getMethod("setGpu", GPU.class)
+						.invoke(c, s.find(GPU.class, 5873));
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+					System.exit(-1);
+				}
 
-				s.find(Procesor.class, 5873).setPret(1750);
-				s.find(Procesor.class, 9561).setModel("Titan RTX");
-
-			// Simulez un scenariu
-				read(s, "SELECT * FROM Procesor WHERE ID IN (5873, 9561)");
+				System.out.println(c);
 			},
-		// Delete
 			s ->
 			{
 				System.out.println("Tranzactia III:");
-
-				IntStream.of(9561, 5873, 7531).forEach(x -> s.remove(s.find(Procesor.class, x)));
-
-				read(s, "SELECT * FROM Procesor");
+				s.remove(s.find(Calculator.class, 69782));
+				System.out.println("S-a sters calculatorul mentionat precedent.");
 			}
 		).forEach(Util::doSession);
 	}

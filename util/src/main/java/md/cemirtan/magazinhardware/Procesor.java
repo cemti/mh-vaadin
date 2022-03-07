@@ -1,7 +1,12 @@
 package md.cemirtan.magazinhardware;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import java.util.Objects;
 
 @Entity
 public class Procesor
@@ -9,24 +14,28 @@ public class Procesor
 	@Id
 	private int id;
 
-	@Column(nullable=false)
-	private String firmaId;
+	@ManyToOne(cascade = { CascadeType.ALL })
+	@JoinColumn(name = "FirmaID", nullable = false)
+	private Firma firma;
 
-	@Column(nullable=false)
+	@Column(nullable = false)
 	private String model;
 
-	@Column(nullable=false)
-	private double viteza;
-
-	@Column(nullable=false)
-	private double pret;
+	@Column(nullable = false)
+	private double viteza, pret;
+	
+	@OneToOne(mappedBy = "procesor", cascade = { CascadeType.ALL })
+	private CPU cpu;
+	
+	@OneToOne(mappedBy = "procesor", cascade = { CascadeType.ALL })
+	private GPU gpu;
 
 	public Procesor() {}
 
-	public Procesor(int id, String firmaId, String model, double viteza, double pret)
+	public Procesor(int id, Firma firma, String model, double viteza, double pret)
 	{
 		this.id = id;
-		this.firmaId = firmaId;
+		this.firma = firma;
 		this.model = model;
 		this.viteza = viteza;
 		this.pret = pret;
@@ -37,29 +46,14 @@ public class Procesor
 		return id;
 	}
 
-	public void setId(int id)
+	public Firma getFirma()
 	{
-		this.id = id;
-	}
-
-	public String getFirmaId()
-	{
-		return firmaId;
-	}
-
-	public void setFirmaId(String firmaId)
-	{
-		this.firmaId = firmaId;
+		return firma;
 	}
 
 	public String getModel()
 	{
 		return model;
-	}
-
-	public void setModel(String model)
-	{
-		this.model = model;
 	}
 
 	public double getViteza()
@@ -81,10 +75,43 @@ public class Procesor
 	{
 		this.pret = pret;
 	}
+	
+	public CPU getCpu()
+	{
+		return cpu;
+	}
+	
+	public GPU getGpu()
+	{
+		return gpu;
+	}
 
 	@Override
 	public String toString()
 	{
-		return String.format("(%s, %s, %s, %s MHz, %s MDL)", getId(), getFirmaId(), getModel(), getViteza(), getPret());
+		return String.format("(%s, %s, %s, %s GHz, %s MDL)", getId(), getFirma(), getModel(), getViteza(), getPret());
+	}
+
+	@Override
+	public int hashCode()
+	{
+		return id;
+	}
+
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (obj == this)
+			return true;
+	
+		if (!(obj instanceof Procesor))
+			return false;
+		
+		var o = (Procesor)obj;
+
+		return 
+			Objects.equals(cpu, o.cpu) && Objects.equals(firma, o.firma) && 
+			Objects.equals(gpu, o.gpu) && id == o.id && Objects.equals(model, o.model) &&
+			Double.compare(pret, o.pret) == 0 && Double.compare(viteza, o.viteza) == 0;
 	}
 }

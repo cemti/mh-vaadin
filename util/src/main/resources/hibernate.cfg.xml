@@ -7,5 +7,11 @@
   <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/Magazin Hardware</property>
   <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
   <mapping class="md.cemirtan.magazinhardware.Procesor"/>
+  <mapping class="md.cemirtan.magazinhardware.CPU"/>
+  <mapping class="md.cemirtan.magazinhardware.GPU"/>
+  <mapping class="md.cemirtan.magazinhardware.Disk"/>
+  <mapping class="md.cemirtan.magazinhardware.RAM"/>
+  <mapping class="md.cemirtan.magazinhardware.Firma"/>
+  <mapping class="md.cemirtan.magazinhardware.Calculator"/>
  </session-factory>
 </hibernate-configuration>
