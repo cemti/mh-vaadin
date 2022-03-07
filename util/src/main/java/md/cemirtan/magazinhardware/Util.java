@@ -62,6 +62,7 @@ public final class Util
 		catch (HibernateException e)
 		{
 			System.err.println("Eroare la conectare BD.");
+			//e.printStackTrace();
 			return;
 		}
 
