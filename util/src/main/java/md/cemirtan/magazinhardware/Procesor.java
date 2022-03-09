@@ -110,8 +110,8 @@ public class Procesor
 		var o = (Procesor)obj;
 
 		return 
-			Objects.equals(cpu, o.cpu) && Objects.equals(firma, o.firma) && 
-			Objects.equals(gpu, o.gpu) && id == o.id && Objects.equals(model, o.model) &&
-			Double.compare(pret, o.pret) == 0 && Double.compare(viteza, o.viteza) == 0;
+			id == o.id && Objects.equals(firma, o.firma) && 
+			Objects.equals(model, o.model) && Double.compare(pret, o.pret) == 0 &&
+			Double.compare(viteza, o.viteza) == 0;
 	}
 }

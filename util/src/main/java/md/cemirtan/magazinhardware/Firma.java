@@ -3,7 +3,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
-import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -63,16 +62,6 @@ public class Firma
 	@Override
 	public boolean equals(Object obj)
 	{
-		if (obj == this)
-			return true;
-		
-		if (!(obj instanceof Firma))
-			return false;
-		
-		var o = (Firma)obj;
-
-		return 
-			Objects.equals(diskSet, o.diskSet) && Objects.equals(id, o.id) && 
-			Objects.equals(procesorSet, o.procesorSet) && Objects.equals(ramSet, o.ramSet);
+		return obj == this || (obj instanceof Firma && id == ((Firma)obj).id);
 	}
 }

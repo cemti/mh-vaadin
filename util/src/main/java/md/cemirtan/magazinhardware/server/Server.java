@@ -1,29 +1,37 @@
 package md.cemirtan.magazinhardware.server;
+import md.cemirtan.magazinhardware.Helper;
+import md.cemirtan.magazinhardware.Firma;
+import md.cemirtan.magazinhardware.Util;
+import md.cemirtan.magazinhardware.Core;
+import md.cemirtan.magazinhardware.RAM;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.html.Footer;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H5;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.dom.Style;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import java.sql.SQLException;
+import java.sql.Types;
 
 @SpringBootApplication
 public class Server
 {
-	public static void main(String[] args)
+	public static void main(String[] args) throws HibernateException, SQLException
 	{
 		SpringApplication.run(Server.class, args);
 	}
@@ -34,126 +42,214 @@ public class Server
 class MainView extends VerticalLayout
 {
 	private static final long serialVersionUID = 1;
-	private HorizontalLayout hLayout, hLayoutSpans;	
-	private String color = "red";
-	
-	private Style setShadowColor(Style span)
-	{
-		return span.set("text-shadow", "0 0 2px black").set("color", color);
-	}
-	
-	private void hLayoutAddSpan(Span span)
-	{
-		hLayoutSpans.add(span);
-		
-		if (hLayoutSpans.getComponentCount() > 0)
-			hLayout.setVisible(true);
-	}
-	
-	private void hLayoutRemoveSpan(Span span)
-	{
-		hLayoutSpans.remove(span);
-		
-		if (hLayoutSpans.getComponentCount() == 0)
-			hLayout.setVisible(false);
-	}
-	
-	private void hLayoutUpdateColors()
-	{
-		hLayoutSpans.getChildren().forEach(x -> setShadowColor(((Span)x).getStyle()));
-	}
+	private String username, password;
+	private boolean modeSwitch;
+	private Session session;
 	
 	public MainView()
 	{
-		hLayout = new HorizontalLayout(
-			hLayoutSpans = new HorizontalLayout(),
-			new Button("Curăță", e -> 
+		var refreshButton = new Button("Refresh");
+		refreshButton.setEnabled(false);
+		
+		var usernameField = new TextField("Username", e -> refreshButton.setEnabled(!e.getValue().isBlank()));
+		var passwordField = new PasswordField("Password");
+		
+		var dbLayout = new VerticalLayout();
+		dbLayout.setAlignItems(Alignment.CENTER);
+		dbLayout.setEnabled(false);
+
+		var textAreaList = new TextArea();
+		textAreaList.setWidthFull();
+		textAreaList.setReadOnly(true);
+		textAreaList.getStyle().set("font-family", "monospace");
+		
+		var grid = new Grid<RAM>(RAM.class, false);
+		grid.addColumn(RAM::getId).setHeader("ID");
+		grid.addColumn(RAM::getFirma).setHeader("Firma");
+		grid.addColumn(RAM::getCoeficient).setHeader("Coeficient");
+		grid.addColumn(RAM::getCl).setHeader("CL");
+		grid.addColumn(RAM::getCapacitate).setHeader("Capacitate (GB)");
+		
+		var firmaSelect = new Select<Firma>();
+		firmaSelect.setLabel("Firma");
+		
+		Runnable 
+			gridRefresh = () -> grid.setItems(session.createNativeQuery("SELECT * FROM RAM", RAM.class).list()),
+			textAreaRefresh = () ->
 			{
-				hLayoutSpans.removeAll();
-				hLayout.setVisible(false);
-				Notification.show("Șters complet.");
-			})
-		);
-		
-		hLayoutSpans.getStyle()
-			.set("border", "2px inset silver")
-			.set("padding", "5px");
-		
-		hLayout.setVisible(false);
-
-		var progressBar = new ProgressBar(0, 100);
-		progressBar.setHeight("25px");
-		
-		var iField = new IntegerField(e -> progressBar.setValue(e.getValue()));
-		iField.setMax(100);
-		iField.setMin(0);
-		iField.setStep(5);
-		iField.setValue(50);
-		iField.setHasControls(true);
-		
-		var vLayout = new VerticalLayout(new H5("Test cu procente"), iField, progressBar);
-		vLayout.setAlignItems(Alignment.CENTER);
-		vLayout.getStyle().set("border", "2px dotted silver").set("width", "initial");
-		
-		var select = new Select<String>("red", "green", "blue");
-		select.setLabel("Culoarea obiectelor");
-		select.setValue("red");
-		
-		var checkbox = new Checkbox("Actualizare automată", e -> 
-		{
-			if (e.getValue())
-				hLayoutUpdateColors();
-		});
-
-		select.addValueChangeListener(e ->
-		{
-			color = e.getValue();
-			
-			if (checkbox.getValue())
-				hLayoutUpdateColors();
-		});
-		
-		var addDialog = new Dialog();
-		var dialogTextField = new TextField("Denumire object");
-
-		addDialog.add(
-			dialogTextField, 
-			new Button("Adaugă", e ->
-			{
-				if (dialogTextField.getValue().isBlank())
-					Notification.show("Se necesită să fie completat.");
-				else
+				try (var c = Core.getConnection(username, password))
 				{
-					var span = new Span(dialogTextField.getValue());
-					span.addClickListener(e1 -> 
-					{
-						hLayoutRemoveSpan(e1.getSource());
-						Notification.show("Șters.");
-					});
-					setShadowColor(span.getStyle()).set("cursor", "pointer");
-		
-					hLayoutAddSpan(span);
-					addDialog.close();
-					Notification.show("Adăugat.");
+					textAreaList.setValue(Helper.formatQuery(c, "SELECT * FROM RAM"));
 				}
-			})
+				catch (SQLException e)
+				{
+					textAreaList.setValue(e.getMessage());
+				}
+			},
+			refresh = () ->
+			{
+				if (username == null)
+				{
+					username = usernameField.getValue();
+					password = passwordField.getValue();
+					session = Util.getSession(username, password);
+					
+					try
+					{
+						firmaSelect.setItems(session.createNativeQuery("SELECT * FROM Firma", Firma.class).list());
+					}
+					catch (Exception e)
+					{
+						Notification.show("Eroare la conexiune.");
+						return;
+					}
+
+					usernameField.setVisible(false);
+					passwordField.setVisible(false);
+					dbLayout.setEnabled(true);
+				}
+				
+				textAreaRefresh.run();
+				gridRefresh.run();
+			};
+			
+		refreshButton.addClickListener(e -> refresh.run());
+
+		var radioGroup = new RadioButtonGroup<String>();
+		radioGroup.setItems("Hibernate", "JDBC");
+		radioGroup.addValueChangeListener(e ->
+		{
+			modeSwitch ^= true;
+			grid.setVisible(modeSwitch);
+			textAreaList.setVisible(!modeSwitch);
+		});
+		radioGroup.setValue("Hibernate");
+		
+		var idField = new IntegerField("ID");
+		
+		var coeficientField = new IntegerField("Coeficient");
+		coeficientField.setMin(1);
+		coeficientField.setHasControls(true);
+		
+		var clField = new IntegerField("CL");
+		clField.setMin(1);
+		
+		var capacitateField = new IntegerField("Capacitate", e ->
+		{
+			var val = e.getValue();
+			if (val != null)
+				e.getSource().setInvalid(((val & (val - 1)) != 0));
+		});
+		capacitateField.setMin(1);
+		
+		var adauga = new Button("Adaugă/Actualizează");
+		
+		var formLayout = new HorizontalLayout(idField, firmaSelect, coeficientField, clField, capacitateField, adauga);
+		
+		adauga.addClickListener(e ->
+		{
+			if (capacitateField.isInvalid())
+			{
+				Notification.show("Coeficientul nu este o putere a lui doi.");
+				return;
+			}
+			
+			if (formLayout.getChildren().filter(x -> x != adauga).anyMatch(x -> 
+			{
+				var value = ((AbstractField<?, ?>)x).getValue();
+				return value == null || value.toString().isBlank();
+			}))
+			{
+				Notification.show("Trebuie de completat formularul.");
+				return;
+			}
+			
+			var indicator = "Actualizat";
+			
+			if (modeSwitch)
+			{
+				session.beginTransaction();
+				
+				session.merge(new RAM(
+					idField.getValue(),
+					firmaSelect.getValue(),
+					coeficientField.getValue(),
+					clField.getValue(),
+					capacitateField.getValue()));
+				
+				session.getTransaction().commit();
+			}
+			else
+				try (var c = Core.getConnection(username, password))
+				{
+					if (
+						Helper.executeBatches(c, "UPDATE RAM SET FirmaID = ?, Coeficient = ?, CL = ?, Capacitate = ? WHERE ID = ?",
+						new Object[][]
+						{
+							{
+								firmaSelect.getValue(),
+								coeficientField.getValue(), clField.getValue(),
+								capacitateField.getValue(), idField.getValue()
+							}
+						},
+						new Integer[] { Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
+					)[0] == 0)
+					{
+						Helper.executeBatches(c, "INSERT INTO RAM VALUES (?, ?, ?, ?, ?)",
+							new Object[][]
+							{
+								{
+									idField.getValue(), firmaSelect.getValue(),
+									coeficientField.getValue(), clField.getValue(),
+									capacitateField.getValue()
+								}
+							},
+							new Integer[] { Types.INTEGER, Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
+						);
+						
+						indicator = "Adăugat";
+					}
+				}
+				catch (SQLException e1)
+				{
+					textAreaList.setValue(e1.getMessage());
+					return;
+				}
+			
+			refresh.run();
+			Notification.show(indicator + " cu succes.");
+		});
+		
+		grid.addSelectionListener(e ->
+		{
+			var select = e.getFirstSelectedItem();
+			
+			if (select.isPresent())
+			{
+				var item = select.get();
+				
+				idField.setValue(item.getId());
+				firmaSelect.setValue(item.getFirma());
+				coeficientField.setValue(item.getCoeficient());
+				clField.setValue(item.getCl());
+				capacitateField.setValue(item.getCapacitate());
+			}
+		});
+		
+		dbLayout.add(
+			formLayout,
+			radioGroup,
+			new H5("Tabela RAM"),
+			textAreaList,
+			grid
 		);
 		
 		setAlignItems(Alignment.CENTER);
 		add(
-			new H1("Prima mea pagină Vaadin"), 
-			vLayout, 
-			select, 
-			checkbox, 
-			new Button("Adaugă un obiect", e -> 
-			{
-				dialogTextField.clear();
-				addDialog.open();
-				dialogTextField.focus();
-			}), 
-			hLayout,
+			new H1("Magazin Hardware"),
+			new HorizontalLayout(usernameField, passwordField, refreshButton),
 			new Hr(),
-			new Footer(new Span("Copyright 2022 Cemîrtan Cristian"))
+			dbLayout
 		);
 	}
 }

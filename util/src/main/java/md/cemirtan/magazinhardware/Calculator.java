@@ -128,8 +128,8 @@ public class Calculator
 		var o = (Calculator)obj;
 		
 		return 
-			Objects.equals(cpu, o.cpu) && Objects.equals(disk, o.disk) && 
-			Objects.equals(gpu, o.gpu) && id == o.id && 
+			id == o.id && Objects.equals(cpu, o.cpu) &&
+			Objects.equals(disk, o.disk) && Objects.equals(gpu, o.gpu) && 
 			Objects.equals(ramA, o.ramA) && Objects.equals(ramB, o.ramB);
 	}
 }

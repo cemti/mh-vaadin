@@ -7,22 +7,24 @@ import java.sql.ResultSet;
 
 public final class Core
 {
-	private static Connection connection;
+	private static String connectionURL = "localhost:3306/Magazin Hardware";
 	
-	static Connection getConnection()
+	static String getConnectionURL()
 	{
-		return connection;
+		return connectionURL;
 	}
 	
-	static void Connect(String username, String password) throws SQLException
+	static String getJdbcURL()
 	{
-		if (connection != null)
-			connection.close();
-	
-		connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/Magazin Hardware", username, password);
+		return "jdbc:mysql://" + connectionURL;
 	}
 	
-	static ResultSet ExecuteQuery(String query) throws SQLException
+	public static Connection getConnection(String username, String password) throws SQLException
+	{
+		return DriverManager.getConnection(getJdbcURL(), username, password);
+	}
+	
+	public static ResultSet executeQuery(Connection connection, String query) throws SQLException
 	{
 		try (var ps = connection.prepareStatement(query))
 		{
@@ -33,7 +35,7 @@ public final class Core
 		}
 	}
 	
-	static boolean Execute(String query) throws SQLException
+	public static boolean execute(Connection connection, String query) throws SQLException
 	{
 		try (var ps = connection.prepareStatement(query))
 		{
