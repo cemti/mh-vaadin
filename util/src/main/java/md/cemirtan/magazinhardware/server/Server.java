@@ -27,6 +27,8 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.function.Consumer;
 
 @SpringBootApplication
 public class Server
@@ -45,21 +47,23 @@ class MainView extends VerticalLayout
 	private String username, password;
 	private boolean modeSwitch;
 	private Session session;
+	private Consumer<Boolean> refresh;
 	
 	public MainView()
 	{
-		var refreshButton = new Button("Refresh");
+		var refreshButton = new Button("Refresh", e -> refresh.accept(true));
 		refreshButton.setEnabled(false);
 		
 		var usernameField = new TextField("Username", e -> refreshButton.setEnabled(!e.getValue().isBlank()));
 		var passwordField = new PasswordField("Password");
 		
+		var authLayout = new HorizontalLayout(usernameField, passwordField, refreshButton);
+		
 		var dbLayout = new VerticalLayout();
 		dbLayout.setAlignItems(Alignment.CENTER);
-		dbLayout.setEnabled(false);
 
 		var textAreaList = new TextArea();
-		textAreaList.setWidthFull();
+		dbLayout.setAlignSelf(Alignment.STRETCH, textAreaList);
 		textAreaList.setReadOnly(true);
 		textAreaList.getStyle().set("font-family", "monospace");
 		
@@ -72,59 +76,66 @@ class MainView extends VerticalLayout
 		
 		var firmaSelect = new Select<Firma>();
 		firmaSelect.setLabel("Firma");
+
+		var radioGroup = new RadioButtonGroup<String>();
+		radioGroup.setItems("Hibernate", "JDBC");
 		
-		Runnable 
-			gridRefresh = () -> grid.setItems(session.createNativeQuery("SELECT * FROM RAM", RAM.class).list()),
-			textAreaRefresh = () ->
+		refresh = reserved ->
+		{
+			username = usernameField.getValue();
+			password = passwordField.getValue();
+			session = Util.getSession(username, password);
+			
+			refresh = b ->
 			{
-				try (var c = Core.getConnection(username, password))
-				{
-					textAreaList.setValue(Helper.formatQuery(c, "SELECT * FROM RAM"));
-				}
-				catch (SQLException e)
-				{
-					textAreaList.setValue(e.getMessage());
-				}
-			},
-			refresh = () ->
-			{
-				if (username == null)
-				{
-					username = usernameField.getValue();
-					password = passwordField.getValue();
-					session = Util.getSession(username, password);
-					
+				if (modeSwitch)
 					try
 					{
-						firmaSelect.setItems(session.createNativeQuery("SELECT * FROM Firma", Firma.class).list());
+						session.clear();
+						grid.setItems(session.createNativeQuery("SELECT * FROM RAM", RAM.class).list());
+
+						if (b)
+							firmaSelect.setItems(session.createNativeQuery("SELECT * FROM Firma", Firma.class).list());
 					}
 					catch (Exception e)
 					{
 						Notification.show("Eroare la conexiune.");
-						return;
 					}
-
-					usernameField.setVisible(false);
-					passwordField.setVisible(false);
-					dbLayout.setEnabled(true);
-				}
-				
-				textAreaRefresh.run();
-				gridRefresh.run();
+				else
+					try (var c = Core.getConnection(username, password))
+					{
+						textAreaList.setValue(Helper.formatQuery(c, "SELECT * FROM RAM"));
+						var rs = Core.executeQuery(c, "SELECT * FROM FIRMA");
+						
+						if (b)
+						{
+							var list = new ArrayList<Firma>();
+							
+							while (rs.next())
+								list.add(new Firma(rs.getString("ID")));
+							
+							firmaSelect.setItems(list);
+						}
+					}
+					catch (SQLException e)
+					{
+						textAreaList.setValue(e.getMessage());
+					}
 			};
-			
-		refreshButton.addClickListener(e -> refresh.run());
 
-		var radioGroup = new RadioButtonGroup<String>();
-		radioGroup.setItems("Hibernate", "JDBC");
-		radioGroup.addValueChangeListener(e ->
-		{
-			modeSwitch ^= true;
-			grid.setVisible(modeSwitch);
-			textAreaList.setVisible(!modeSwitch);
-		});
-		radioGroup.setValue("Hibernate");
-		
+			radioGroup.addValueChangeListener(e ->
+			{
+				modeSwitch ^= true;
+				grid.setVisible(modeSwitch);
+				textAreaList.setVisible(!modeSwitch);
+				refresh.accept(true);
+			});
+			
+			radioGroup.setValue("Hibernate");
+			authLayout.remove(usernameField, passwordField);
+			add(dbLayout);
+		};
+
 		var idField = new IntegerField("ID");
 		
 		var coeficientField = new IntegerField("Coeficient");
@@ -137,13 +148,13 @@ class MainView extends VerticalLayout
 		var capacitateField = new IntegerField("Capacitate", e ->
 		{
 			var val = e.getValue();
+			
 			if (val != null)
-				e.getSource().setInvalid(((val & (val - 1)) != 0));
+				e.getSource().setInvalid((val & (val - 1)) != 0);
 		});
 		capacitateField.setMin(1);
 		
 		var adauga = new Button("Adaugă/Actualizează");
-		
 		var formLayout = new HorizontalLayout(idField, firmaSelect, coeficientField, clField, capacitateField, adauga);
 		
 		adauga.addClickListener(e ->
@@ -216,7 +227,7 @@ class MainView extends VerticalLayout
 					return;
 				}
 			
-			refresh.run();
+			refresh.accept(false);
 			Notification.show(indicator + " cu succes.");
 		});
 		
@@ -247,9 +258,8 @@ class MainView extends VerticalLayout
 		setAlignItems(Alignment.CENTER);
 		add(
 			new H1("Magazin Hardware"),
-			new HorizontalLayout(usernameField, passwordField, refreshButton),
-			new Hr(),
-			dbLayout
+			authLayout,
+			new Hr()
 		);
 	}
 }
