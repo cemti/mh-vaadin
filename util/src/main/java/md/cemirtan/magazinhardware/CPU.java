@@ -30,10 +30,20 @@ public class CPU
 	{
 		return procesor;
 	}
+	
+	public void setProcesor(Procesor procesor)
+	{
+		this.procesor = procesor;
+	}
 
 	public int getNuclee()
 	{
 		return nuclee;
+	}
+	
+	public void setNuclee(int nuclee)
+	{
+		this.nuclee = nuclee;
 	}
 	
 	@Override

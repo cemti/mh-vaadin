@@ -16,7 +16,7 @@ public class RAM
 	@ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST })
 	@JoinColumn(name = "firmaid", nullable = false)
 	private Firma firma;
-	
+
 	@Column(nullable = false)
 	private int coeficient, cl, capacitate;
 	
@@ -30,10 +30,15 @@ public class RAM
 		this.cl = cl;
 		this.capacitate = capacitate;
 	}
-
+	
 	public int getId()
 	{
 		return id;
+	}
+	
+	public void setId(int id)
+	{
+		this.id = id;
 	}
 
 	public Firma getFirma()
@@ -69,6 +74,11 @@ public class RAM
 	public int getCapacitate()
 	{
 		return capacitate;
+	}
+	
+	public void setCapacitate(int capacitate)
+	{
+		this.capacitate = capacitate;
 	}
 
 	@Override

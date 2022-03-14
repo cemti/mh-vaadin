@@ -36,6 +36,11 @@ public class Disk
 	{
 		return id;
 	}
+	
+	public void setId(int id)
+	{
+		this.id = id;
+	}
 
 	public Firma getFirma()
 	{
@@ -51,12 +56,22 @@ public class Disk
 	{
 		return capacitate;
 	}
+	
+	public void setCapacitate(int capacitate)
+	{
+		this.capacitate = capacitate;
+	}
 
 	public Integer getViteza()
 	{
 		return viteza;
 	}
 	
+	public void setViteza(Integer viteza)
+	{
+		this.viteza = viteza;
+	}
+
 	@Override
 	public String toString()
 	{

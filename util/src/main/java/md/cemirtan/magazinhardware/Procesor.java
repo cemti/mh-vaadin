@@ -45,15 +45,30 @@ public class Procesor
 	{
 		return id;
 	}
+	
+	public void setId(int id)
+	{
+		this.id = id;
+	}
 
 	public Firma getFirma()
 	{
 		return firma;
 	}
+	
+	public void setFirma(Firma firma)
+	{
+		this.firma = firma;
+	}
 
 	public String getModel()
 	{
 		return model;
+	}
+	
+	public void setModel(String model)
+	{
+		this.model = model;
 	}
 
 	public double getViteza()
@@ -81,9 +96,19 @@ public class Procesor
 		return cpu;
 	}
 	
+	public void setCpu(CPU cpu)
+	{
+		this.cpu = cpu;
+	}
+	
 	public GPU getGpu()
 	{
 		return gpu;
+	}
+	
+	public void setGpu(GPU gpu)
+	{
+		this.gpu = gpu;
 	}
 
 	@Override

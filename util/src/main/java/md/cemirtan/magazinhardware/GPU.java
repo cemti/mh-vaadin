@@ -31,9 +31,19 @@ public class GPU
 		return procesor;
 	}
 
+	public void setProcesor(Procesor procesor)
+	{
+		this.procesor = procesor;
+	}
+
 	public int getVram()
 	{
 		return vram;
+	}
+	
+	public void setVram(int vram)
+	{
+		this.vram = vram;
 	}
 	
 	@Override

@@ -32,6 +32,11 @@ public class Firma
 		return toString();
 	}
 	
+	public void setId(String id)
+	{
+		this.id = id;
+	}
+	
 	public Set<Procesor> getProcesorSet()
 	{
 		return procesorSet;
