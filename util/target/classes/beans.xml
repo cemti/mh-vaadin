@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+    <bean id="firma1_1" class="md.cemirtan.magazinhardware.Firma">
+        <property name="id" value="AMD"/>
+    </bean>
+    <bean id="firma1_2" class="md.cemirtan.magazinhardware.Firma">
+        <property name="id" value="WD"/>
+    </bean>
+    <bean id="firma1_3" class="md.cemirtan.magazinhardware.Firma">
+        <property name="id" value="Nvidia"/>
+    </bean>
+    <bean id="ram1" class="md.cemirtan.magazinhardware.RAM">
+        <property name="id" value="1234"/>
+        <property name="firma" ref="firma1_1"/>
+        <property name="coeficient" value="24"/>
+        <property name="cl" value="9"/>
+        <property name="capacitate" value="16"/>
+    </bean>
+    <bean id="disk1" class="md.cemirtan.magazinhardware.Disk">
+        <property name="id" value="5678"/>
+        <property name="firma" ref="firma1_2"/>
+        <property name="viteza" value="5400"/>
+        <property name="capacitate" value="500"/>
+    </bean>
+    <bean id="procesor1_1" class="md.cemirtan.magazinhardware.Procesor">
+        <property name="id" value="9012"/>
+        <property name="firma" ref="firma1_1"/>
+        <property name="model" value="Phenom II X6"/>
+        <property name="viteza" value="3.2"/>
+        <property name="pret" value="800"/>
+    </bean>
+    <bean id="procesor1_2" class="md.cemirtan.magazinhardware.Procesor">
+        <property name="id" value="3456"/>
+        <property name="firma" ref="firma1_2"/>
+        <property name="model" value="GeForce GS"/>
+        <property name="viteza" value="0.9"/>
+        <property name="pret" value="500"/>
+    </bean>
+    <bean id="cpu1" class="md.cemirtan.magazinhardware.CPU">
+        <property name="procesor" ref="procesor1_1"/>
+        <property name="nuclee" value="6"/>
+    </bean>
+    <bean id="gpu1" class="md.cemirtan.magazinhardware.GPU">
+        <property name="procesor" ref="procesor1_2"/>
+        <property name="vram" value="1"/>
+    </bean>
+    <bean id="calculator1" class="md.cemirtan.magazinhardware.Calculator">
+        <property name="id" value="78901"/>
+        <property name="cpu" ref="cpu1"/>
+        <property name="gpu" ref="gpu1"/>
+        <property name="ramA" ref="ram1"/>
+        <property name="disk" ref="disk1"/>
+    </bean>
+</beans>
