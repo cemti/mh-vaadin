@@ -5,11 +5,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+
+import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
-public class RAM
+public class RAM implements Serializable
 {
+	private static final long serialVersionUID = 1;
+	
 	@Id
 	private int id;
 	

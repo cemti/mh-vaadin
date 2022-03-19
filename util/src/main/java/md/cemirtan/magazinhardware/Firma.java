@@ -3,22 +3,26 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+
+import java.io.Serializable;
 import java.util.Set;
 
 @Entity
-public class Firma
+public class Firma implements Serializable
 {
+	private static final long serialVersionUID = 1;
+
 	@Id
 	private String id;
 	
 	@OneToMany(mappedBy = "firma", cascade = { CascadeType.ALL })
-	private Set<Procesor> procesorSet;
+	private transient Set<Procesor> procesorSet;
 	
 	@OneToMany(mappedBy = "firma", cascade = { CascadeType.ALL })
-	private Set<RAM> ramSet;
+	private transient Set<RAM> ramSet;
 	
 	@OneToMany(mappedBy = "firma", cascade = { CascadeType.ALL })
-	private Set<Disk> diskSet;
+	private transient Set<Disk> diskSet;
 	
 	public Firma() {}
 	

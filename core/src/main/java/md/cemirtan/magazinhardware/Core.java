@@ -4,24 +4,23 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.util.Map;
 
 public final class Core
 {
-	private static String connectionURL = "localhost:3306/Magazin Hardware";
+	private static final Map<String, String> urlMap = Map.of(
+		"mysql", "//localhost:3306/Magazin Hardware",
+		"h2", "~/mh_demo"
+	);
 	
-	static String getConnectionURL()
+	static String getJdbcURL(String dbms)
 	{
-		return connectionURL;
+		return String.format("jdbc:%s:%s", dbms, urlMap.get(dbms));
 	}
 	
-	static String getJdbcURL()
+	public static Connection getConnection(String dbms, String username, String password) throws SQLException
 	{
-		return "jdbc:mysql://" + connectionURL;
-	}
-	
-	public static Connection getConnection(String username, String password) throws SQLException
-	{
-		return DriverManager.getConnection(getJdbcURL(), username, password);
+		return DriverManager.getConnection(getJdbcURL(dbms), username, password);
 	}
 	
 	public static ResultSet executeQuery(Connection connection, String query) throws SQLException

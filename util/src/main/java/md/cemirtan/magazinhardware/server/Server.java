@@ -44,7 +44,7 @@ public class Server
 class MainView extends VerticalLayout
 {
 	private static final long serialVersionUID = 1;
-	private String username, password;
+	private String dbms, username, password;
 	private boolean modeSwitch;
 	private Session session;
 	private Consumer<Boolean> refresh;
@@ -54,10 +54,16 @@ class MainView extends VerticalLayout
 		var refreshButton = new Button("Refresh", e -> refresh.accept(true));
 		refreshButton.setEnabled(false);
 		
+		var dbmsRadioGroup = new RadioButtonGroup<String>();
+		dbmsRadioGroup.setItems("MySQL", "H2");
+		dbmsRadioGroup.setLabel("SGBD");
+		dbmsRadioGroup.addValueChangeListener(e -> dbms = e.getValue().toLowerCase());
+		dbmsRadioGroup.setValue("MySQL");
+		
 		var usernameField = new TextField("Username", e -> refreshButton.setEnabled(!e.getValue().isBlank()));
 		var passwordField = new PasswordField("Password");
 		
-		var authLayout = new HorizontalLayout(usernameField, passwordField, refreshButton);
+		var authLayout = new HorizontalLayout(dbmsRadioGroup, usernameField, passwordField, refreshButton);
 		
 		var dbLayout = new VerticalLayout();
 		dbLayout.setAlignItems(Alignment.CENTER);
@@ -84,7 +90,7 @@ class MainView extends VerticalLayout
 		{
 			username = usernameField.getValue();
 			password = passwordField.getValue();
-			session = Util.getSession(username, password);
+			session = Util.getSession(dbms, username, password);
 			
 			refresh = b ->
 			{
@@ -102,7 +108,7 @@ class MainView extends VerticalLayout
 						Notification.show("Eroare la conexiune.");
 					}
 				else
-					try (var c = Core.getConnection(username, password))
+					try (var c = Core.getConnection(dbms, username, password))
 					{
 						textAreaList.setValue(Helper.formatQuery(c, "SELECT * FROM RAM"));
 						var rs = Core.executeQuery(c, "SELECT * FROM FIRMA");
@@ -132,7 +138,7 @@ class MainView extends VerticalLayout
 			});
 			
 			radioGroup.setValue("Hibernate");
-			authLayout.remove(usernameField, passwordField);
+			authLayout.remove(dbmsRadioGroup, usernameField, passwordField);
 			add(dbLayout);
 		};
 
@@ -191,14 +197,16 @@ class MainView extends VerticalLayout
 				session.getTransaction().commit();
 			}
 			else
-				try (var c = Core.getConnection(username, password))
+				try (var c = Core.getConnection(dbms, username, password))
 				{
+					var firma = firmaSelect.getValue().getId();
+					
 					if (
 						Helper.executeBatches(c, "UPDATE RAM SET FirmaID = ?, Coeficient = ?, CL = ?, Capacitate = ? WHERE ID = ?",
 						new Object[][]
 						{
 							{
-								firmaSelect.getValue(),
+								firma,
 								coeficientField.getValue(), clField.getValue(),
 								capacitateField.getValue(), idField.getValue()
 							}
@@ -210,7 +218,7 @@ class MainView extends VerticalLayout
 							new Object[][]
 							{
 								{
-									idField.getValue(), firmaSelect.getValue(),
+									idField.getValue(), firma,
 									coeficientField.getValue(), clField.getValue(),
 									capacitateField.getValue()
 								}

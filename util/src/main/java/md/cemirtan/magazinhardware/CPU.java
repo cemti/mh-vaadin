@@ -5,11 +5,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+
+import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
-public class CPU
+public class CPU implements Serializable
 {
+	private static final long serialVersionUID = 1;
+
 	@Id
 	@OneToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST })
 	@JoinColumn(name = "ID")
