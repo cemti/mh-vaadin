@@ -16,11 +16,13 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.AbstractField;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H5;
 import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.hibernate.HibernateException;
@@ -51,7 +53,7 @@ class MainView extends VerticalLayout
 	
 	public MainView()
 	{
-		var refreshButton = new Button("Refresh", e -> refresh.accept(true));
+		var refreshButton = new Button("Autentificare", e -> refresh.accept(true));
 		refreshButton.setEnabled(false);
 		
 		var dbmsRadioGroup = new RadioButtonGroup<String>();
@@ -85,6 +87,7 @@ class MainView extends VerticalLayout
 
 		var radioGroup = new RadioButtonGroup<String>();
 		radioGroup.setItems("Hibernate", "JDBC");
+		radioGroup.setLabel("Operabilitate:");
 		
 		refresh = reserved ->
 		{
@@ -139,7 +142,16 @@ class MainView extends VerticalLayout
 			
 			radioGroup.setValue("Hibernate");
 			authLayout.remove(dbmsRadioGroup, usernameField, passwordField);
+
+			authLayout.add(new Button("Logout", e1 ->
+			{
+				session.close();
+				UI.getCurrent().getPage().reload();
+			}));
+			
 			add(dbLayout);
+			addComponentAtIndex(1, new Label("Logat ca " + username));
+			refreshButton.setText("Refresh");
 		};
 
 		var idField = new IntegerField("ID");
@@ -160,84 +172,112 @@ class MainView extends VerticalLayout
 		});
 		capacitateField.setMin(1);
 		
-		var adauga = new Button("Adaugă/Actualizează");
-		var formLayout = new HorizontalLayout(idField, firmaSelect, coeficientField, clField, capacitateField, adauga);
-		
-		adauga.addClickListener(e ->
-		{
-			if (capacitateField.isInvalid())
+		var formLayout = new HorizontalLayout(idField, firmaSelect, coeficientField, clField, capacitateField);
+
+		formLayout.add(new VerticalLayout(
+			new Button("Adaugă/Actualizează", e ->
 			{
-				Notification.show("Coeficientul nu este o putere a lui doi.");
-				return;
-			}
-			
-			if (formLayout.getChildren().filter(x -> x != adauga).anyMatch(x -> 
-			{
-				var value = ((AbstractField<?, ?>)x).getValue();
-				return value == null || value.toString().isBlank();
-			}))
-			{
-				Notification.show("Trebuie de completat formularul.");
-				return;
-			}
-			
-			var indicator = "Actualizat";
-			
-			if (modeSwitch)
-			{
-				session.beginTransaction();
-				
-				session.merge(new RAM(
-					idField.getValue(),
-					firmaSelect.getValue(),
-					coeficientField.getValue(),
-					clField.getValue(),
-					capacitateField.getValue()));
-				
-				session.getTransaction().commit();
-			}
-			else
-				try (var c = Core.getConnection(dbms, username, password))
+				if (capacitateField.isInvalid())
 				{
-					var firma = firmaSelect.getValue().getId();
+					Notification.show("Coeficientul nu este o putere a lui doi.");
+					return;
+				}
+				
+				if (formLayout.getChildren().filter(x -> x instanceof AbstractField).anyMatch(x -> ((AbstractField<?, ?>)x).isEmpty()))
+				{
+					Notification.show("Trebuie de completat formularul.");
+					return;
+				}
+				
+				var indicator = "Actualizat";
+				
+				if (modeSwitch)
+				{
+					session.beginTransaction();
 					
-					if (
-						Helper.executeBatches(c, "UPDATE RAM SET FirmaID = ?, Coeficient = ?, CL = ?, Capacitate = ? WHERE ID = ?",
-						new Object[][]
-						{
-							{
-								firma,
-								coeficientField.getValue(), clField.getValue(),
-								capacitateField.getValue(), idField.getValue()
-							}
-						},
-						new Integer[] { Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
-					)[0] == 0)
+					session.merge(new RAM(
+						idField.getValue(),
+						firmaSelect.getValue(),
+						coeficientField.getValue(),
+						clField.getValue(),
+						capacitateField.getValue()));
+					
+					session.getTransaction().commit();
+				}
+				else
+					try (var c = Core.getConnection(dbms, username, password))
 					{
-						Helper.executeBatches(c, "INSERT INTO RAM VALUES (?, ?, ?, ?, ?)",
+						var firma = firmaSelect.getValue().getId();
+						
+						if (
+							Helper.executeBatches(c, "UPDATE RAM SET FirmaID = ?, Coeficient = ?, CL = ?, Capacitate = ? WHERE ID = ?",
 							new Object[][]
 							{
 								{
-									idField.getValue(), firma,
+									firma,
 									coeficientField.getValue(), clField.getValue(),
-									capacitateField.getValue()
+									capacitateField.getValue(), idField.getValue()
 								}
 							},
-							new Integer[] { Types.INTEGER, Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
-						);
-						
-						indicator = "Adăugat";
+							new Integer[] { Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
+						)[0] == 0)
+						{
+							Helper.executeBatches(c, "INSERT INTO RAM VALUES (?, ?, ?, ?, ?)",
+								new Object[][]
+								{
+									{
+										idField.getValue(), firma,
+										coeficientField.getValue(), clField.getValue(),
+										capacitateField.getValue()
+									}
+								},
+								new Integer[] { Types.INTEGER, Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER }
+							);
+							
+							indicator = "Adăugat";
+						}
 					}
-				}
-				catch (SQLException e1)
+					catch (SQLException e1)
+					{
+						textAreaList.setValue(e1.getMessage());
+						return;
+					}
+				
+				refresh.accept(false);
+				Notification.show(indicator + " cu succes.");
+			}), 
+			new Button("Șterge după ID", e ->
+			{
+				if (idField.isEmpty())
 				{
-					textAreaList.setValue(e1.getMessage());
+					Notification.show("ID-ul trebuie de completat.");
 					return;
 				}
-			
-			refresh.accept(false);
-			Notification.show(indicator + " cu succes.");
-		});
+
+				if (modeSwitch)
+				{
+					session.beginTransaction();	
+					session.remove(session.find(RAM.class, idField.getValue()));
+					session.getTransaction().commit();
+				}
+				else
+					try (var c = Core.getConnection(dbms, username, password))
+					{
+						Helper.executeBatches(c, "DELETE FROM RAM WHERE ID = ?",
+							new Object[][] { { idField.getValue() } },
+							new Integer[] { Types.INTEGER }
+						);
+					}
+					catch (SQLException e1)
+					{
+						textAreaList.setValue(e1.getMessage());
+						return;
+					}
+				
+				refresh.accept(false);
+				Notification.show("Șters cu succes.");
+			})
+		));
 		
 		grid.addSelectionListener(e ->
 		{
@@ -256,14 +296,15 @@ class MainView extends VerticalLayout
 		});
 		
 		dbLayout.add(
-			formLayout,
 			radioGroup,
+			formLayout,
 			new H5("Tabela RAM"),
 			textAreaList,
 			grid
 		);
 		
 		setAlignItems(Alignment.CENTER);
+		
 		add(
 			new H1("Magazin Hardware"),
 			authLayout,
